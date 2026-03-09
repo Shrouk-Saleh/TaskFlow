@@ -7,7 +7,7 @@ const { registerValidation, loginValidation } = require("../validators/authValid
 
 // ── Public Routes ────────────────────────────────────────────────
 router.post("/register", registerValidation, register);
-router.post("/login", verifyToken,loginValidation, login);
+router.post("/login",loginValidation, login);
 
 
 
