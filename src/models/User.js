@@ -24,7 +24,7 @@ const userSchema = new mongoose.Schema(
       type: String,
       required: [true, "Password is required"],
       minlength: [6, "Password must be at least 6 characters"],
-      select:false
+      select: false
     },
 
     role: {
@@ -40,9 +40,22 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+    passwordResetOTP: {
+      type: String,
+      select: false,
+    },
+    passwordResetOTPExpires: {
+      type: Date,
+      select: false,
+    },
+    passwordResetVerified: {
+      type: Boolean,
+      default: false,
+      select: false,
+    },
   },
   {
-    timestamps: true, 
+    timestamps: true,
   }
 );
 

@@ -14,7 +14,7 @@ const createProject = async (req, res, next) => {
     const project = await Project.create({
       name,
       description,
-      createdBy: req.user.id, 
+      createdBy: req.user.id,
     });
 
     res.status(201).json({
@@ -44,13 +44,13 @@ const getAllProjects = async (req, res, next) => {
       filter = { members: req.user.id };
     }
     // Admin sees everything — filter stays {}
-     if (req.query.status) {
+    if (req.query.status) {
       filter.status = req.query.status;
     }
 
     const projects = await Project.find(filter)
-      .populate("createdBy", "name email")   
-      .populate("members", "name email role") 
+      .populate("createdBy", "name email")
+      .populate("members", "name email role")
 
     res.status(200).json({
       status: "success",
@@ -117,7 +117,7 @@ const updateProject = async (req, res, next) => {
       { name, description, status },
       { new: true, runValidators: true }
     ).populate("createdBy", "name email")
-     .populate("members", "name email role");
+      .populate("members", "name email role");
 
     res.status(200).json({
       status: "success",
@@ -241,7 +241,7 @@ const removeMember = async (req, res, next) => {
       status: "success",
       message: "Member removed from project successfully",
       data: { members: project.members },
-    });
+    }); 
   } catch (error) {
     next(error);
   }
