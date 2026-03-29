@@ -5,6 +5,9 @@ const { AppError } = require("../utils/errorUtils");
 const crypto = require("crypto");
 const { sendOTP } = require("../utils/emailService");
 const jwt = require("jsonwebtoken");
+
+
+
 // ────────────────────────────────────────────────────────────────
 // @desc    Register a new user
 // @route   POST /api/auth/register
@@ -12,30 +15,21 @@ const jwt = require("jsonwebtoken");
 // ────────────────────────────────────────────────────────────────
 const register = async (req, res, next) => {
   try {
-    // 1) Validate incoming request body
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({
-        status: "fail",
-        errors: errors.array()
-      });
-    }
-
     const { name, email, password, role } = req.body;
 
-    // 2) Check if email already exists
+    // 1) Check if email already exists
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       return next(new AppError("Email is already registered", 409));
     }
 
-    // 3) Create the user (password is hashed by pre-save hook in model)
+    // 2) Create the user 
     const user = await User.create({ name, email, password, role });
 
-    // 4) Generate JWT — pass only user._id 
+    // 3) Generate JWT
     const token = generateToken(user._id);
 
-    // 5) Respond 
+    // 4) Respond
     res.status(201).json({
       status: "success",
       message: "Account created successfully",
@@ -53,7 +47,6 @@ const register = async (req, res, next) => {
     next(error);
   }
 };
-
 // ────────────────────────────────────────────────────────────────
 // @desc    Login user and return JWT
 // @route   POST /api/auth/login
@@ -61,38 +54,29 @@ const register = async (req, res, next) => {
 // ────────────────────────────────────────────────────────────────
 const login = async (req, res, next) => {
   try {
-    // 1) Validate request body
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({
-        status: "fail",
-        errors: errors.array() ,
-      });
-    }
-
     const { email, password } = req.body;
 
-    // 2) Find user and explicitly include password 
+    // 1) Find user and explicitly include password
     const user = await User.findOne({ email }).select("+password");
     if (!user) {
       return next(new AppError("Invalid email or password", 401));
     }
 
-    // 3) Check if account is active
+    // 2) Check if account is active
     if (!user.isActive) {
       return next(new AppError("Your account has been deactivated. Contact admin.", 403));
     }
 
-    // 4) Compare password
+    // 3) Compare password
     const isPasswordValid = await user.comparePassword(password);
     if (!isPasswordValid) {
       return next(new AppError("Invalid email or password", 401));
     }
 
-    // 5) Generate token
+    // 4) Generate token
     const token = generateToken(user._id);
 
-    // 6) Respond
+    // 5) Respond
     res.status(200).json({
       status: "success",
       message: "Logged in successfully",
@@ -140,13 +124,11 @@ const forgotPassword = async (req, res, next) => {
     user.passwordResetOTPExpires = Date.now() + 10 * 60 * 1000;
     user.passwordResetVerified = false;
     await user.save({ validateBeforeSave: false });
-
-    // ✅ Add try/catch here to catch Resend errors
     try {
       await sendOTP(user.email, otp);
-      console.log("✅ OTP sent to:", user.email);
+      console.log("OTP sent to:", user.email);
     } catch (emailError) {
-      console.error("❌ Email error:", emailError); // ← check terminal for this
+      console.error(" Email error:", emailError); 
       return next(new AppError("Failed to send OTP. Please try again.", 500));
     }
 
@@ -193,22 +175,20 @@ const verifyResetOTP = async (req, res, next) => {
       return next(new AppError("Invalid OTP.", 400));
     }
 
-    // ✅ Mark as verified
+    //  Mark as verified
     user.passwordResetVerified = true;
     await user.save({ validateBeforeSave: false });
 
-    // ✅ Return a short-lived reset token — user sends this in next step
-    // We reuse JWT but with a special purpose and short expiry
     const resetToken = jwt.sign(
       { id: user._id, purpose: "reset_password" },
       process.env.JWT_SECRET,
-      { expiresIn: "10m" } // only valid for 10 minutes
+      { expiresIn: "10m" } 
     );
 
     res.status(200).json({
       status: "success",
       message: "OTP verified. You may now reset your password.",
-      resetToken, // ← frontend stores this, sends in next step
+      resetToken,
     });
   } catch (error) {
     next(error);
@@ -236,7 +216,7 @@ const resetPassword = async (req, res, next) => {
       return next(new AppError("Password must be at least 6 characters.", 400));
     }
 
-    // ✅ Get token from Authorization header
+    //  Get token from Authorization header
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
       return next(new AppError("Reset token required.", 401));
@@ -244,7 +224,7 @@ const resetPassword = async (req, res, next) => {
 
     const resetToken = authHeader.split(" ")[1];
 
-    // ✅ Verify token and check purpose
+    // Verify token and check purpose
     let decoded;
     try {
       decoded = jwt.verify(resetToken, process.env.JWT_SECRET);
@@ -256,26 +236,26 @@ const resetPassword = async (req, res, next) => {
       return next(new AppError("Invalid reset token.", 401));
     }
 
-    // ✅ Find user by ID from token — no email needed
+    // Find user by ID from token — no email needed
     const user = await User.findById(decoded.id).select(
       "+passwordResetVerified"
     );
 
     if (!user) return next(new AppError("User not found.", 404));
 
-    // ✅ Check OTP was verified
+    // Check OTP was verified
     if (!user.passwordResetVerified) {
       return next(new AppError("Please verify your OTP first.", 403));
     }
 
-    // ✅ Update password
+    // Update password
     user.password = newPassword;
     user.passwordResetOTP = undefined;
     user.passwordResetOTPExpires = undefined;
     user.passwordResetVerified = false;
     await user.save();
 
-    // ✅ Return real login token
+    // Return real login token
     const token = generateToken(user._id);
 
     res.status(200).json({

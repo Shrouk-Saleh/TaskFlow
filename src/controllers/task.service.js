@@ -3,18 +3,18 @@ const { AppError } = require("../utils/errorUtils");
 
 // ── What moves are allowed from each status ──────────────────────
 const ALLOWED_TRANSITIONS = {
-  todo:        ["in_progress"],
+  todo: ["in_progress"],
   in_progress: ["review"],
-  review:      ["done", "todo"], // done = approved | todo = rejected
-  done:        [],               // terminal — no more moves
+  review: ["done", "todo"],
+  done: [],
 };
 
 // ── Who can make each move ───────────────────────────────────────
 const TRANSITION_ROLES = {
-  todo_to_in_progress:   ["team_member"],
+  todo_to_in_progress: ["team_member"],
   in_progress_to_review: ["team_member"],
-  review_to_done:        ["project_manager", "admin"],
-  review_to_todo:        ["project_manager", "admin"], // rejection
+  review_to_done: ["project_manager", "admin"],
+  review_to_todo: ["project_manager", "admin"],
 };
 
 const transitionTask = async (task, newStatus, user, reason) => {
@@ -39,22 +39,19 @@ const transitionTask = async (task, newStatus, user, reason) => {
     );
   }
 
-  // 3) Team member can only move tasks assigned to them
+  // Team member can only move tasks assigned to them
   if (user.role === "team_member") {
     if (!task.assignedTo || task.assignedTo.toString() !== user.id) {
       throw new AppError("You can only update tasks assigned to you.", 403);
     }
   }
 
-  // 4) Self-review prevention
-  // The person assigned to the task cannot be the one to approve or reject it
-  if (from === "review" && (newStatus === "done" || newStatus === "todo")) {
-    if (task.assignedTo && task.assignedTo.toString() === user.id) {
-      throw new AppError("You cannot approve or reject a task assigned to yourself.", 403);
-    }
-  }
 
-  // 5) Rejection requires a reason
+  // to do 
+  // Self-review not possible — only team members can be assigned to tasks
+  // and only managers/admins can approve or reject
+
+  //  Rejection requires a reason
   if (from === "review" && newStatus === "todo") {
     if (!reason || reason.trim() === "") {
       throw new AppError("A rejection reason is required.", 400);

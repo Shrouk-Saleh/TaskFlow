@@ -1,35 +1,6 @@
 const Comment = require("../models/Comment");
-const Task    = require("../models/Task");
-const Project = require("../models/Project");
 const { AppError } = require("../utils/errorUtils");
-
-// ── Helper: same rules as task APIs — admin all, PM own project, member if assigned
-const verifyTaskAccess = async (projectId, taskId, user) => {
-  const task = await Task.findOne({ _id: taskId, project: projectId });
-  if (!task) throw new AppError("Task not found", 404);
-
-  const project = await Project.findById(projectId);
-  if (!project) throw new AppError("Project not found", 404);
-
-  if (user.role === "admin") return task;
-
-  if (user.role === "team_member") {
-    if (!task.assignedTo || task.assignedTo.toString() !== user.id) {
-      throw new AppError("You do not have access to this task.", 403);
-    }
-    return task;
-  }
-
-  if (user.role === "project_manager") {
-    if (project.createdBy.toString() !== user.id) {
-      throw new AppError("You can only access tasks in your own projects.", 403);
-    }
-    return task;
-  }
-
-  throw new AppError("You do not have access to this task.", 403);
-};
-
+const { verifyTaskAccess } = require("../utils/taskAccessHelper");
 // ────────────────────────────────────────────────────────────────
 // @desc    Add comment to a task
 // @route   POST /api/comments/:projectId/:taskId
@@ -71,7 +42,7 @@ const getTaskComments = async (req, res, next) => {
   try {
     const { projectId, taskId } = req.params;
 
-    // Same check as addComment — now consistent ✅
+
     await verifyTaskAccess(projectId, taskId, req.user);
 
     const comments = await Comment.find({ task: taskId })
@@ -97,7 +68,6 @@ const deleteComment = async (req, res, next) => {
   try {
     const { projectId, taskId, commentId } = req.params;
 
-    // Must have task access first — consistent with add/get ✅
     await verifyTaskAccess(projectId, taskId, req.user);
 
     const comment = await Comment.findById(commentId);

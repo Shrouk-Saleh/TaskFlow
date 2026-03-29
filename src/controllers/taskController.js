@@ -83,7 +83,6 @@ const getProjectTasks = async (req, res, next) => {
     // Member only sees their own tasks
     if (req.user.role === "team_member") filter.assignedTo = req.user.id;
 
-    // Optional query filters
     if (req.query.status)   filter.status   = req.query.status;
     if (req.query.priority) filter.priority = req.query.priority;
 
