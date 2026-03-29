@@ -4,7 +4,7 @@ const Joi = require("joi");
 const validate = (schema) => (req, res, next) => {
   const { error } = schema.validate(req.body, {
     abortEarly: false,   // collect ALL errors not just the first
-    allowUnknown: false, // reject extra fields not in schema
+   stripUnknown: true, // remove extra fields
   });
 
   if (error) {

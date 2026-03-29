@@ -2,8 +2,8 @@ const Joi = require("joi");
 
 const validate = (schema) => (req, res, next) => {
   const { error } = schema.validate(req.body, {
-    abortEarly: false,
-    allowUnknown: false,
+    abortEarly: false,   // collect ALL errors not just the first
+    stripUnknown: true,  // remove extra fields
   });
 
   if (error) {
@@ -25,8 +25,8 @@ const createTaskSchema = Joi.object({
     .messages({
       "any.required": "Task title is required",
       "string.empty": "Task title is required",
-      "string.min":   "Title must be at least 3 characters",
-      "string.max":   "Title cannot exceed 200 characters",
+      "string.min": "Title must be at least 3 characters",
+      "string.max": "Title cannot exceed 200 characters",
     }),
 
   description: Joi.string().trim().max(1000).optional().allow(""),
@@ -41,11 +41,11 @@ const createTaskSchema = Joi.object({
 
 // ── Update Task ──────────────────────────────────────────────────
 const updateTaskSchema = Joi.object({
-  title:       Joi.string().trim().min(3).max(200).optional(),
+  title: Joi.string().trim().min(3).max(200).optional(),
   description: Joi.string().trim().max(1000).optional().allow(""),
-  assignedTo:  Joi.string().hex().length(24).optional().allow(null, ""),
-  priority:    Joi.string().valid("low", "medium", "high").optional(),
-  dueDate:     Joi.date().optional().allow(null),
+  assignedTo: Joi.string().hex().length(24).optional().allow(null, ""),
+  priority: Joi.string().valid("low", "medium", "high").optional(),
+  dueDate: Joi.date().optional().allow(null),
 });
 
 // ── Update Status ────────────────────────────────────────────────
@@ -55,7 +55,7 @@ const updateStatusSchema = Joi.object({
     .required()
     .messages({
       "any.required": "Status is required",
-      "any.only":     "Status must be todo, in_progress, review, or done",
+      "any.only": "Status must be todo, in_progress, review, or done",
     }),
 
   reason: Joi.string().trim().max(500).optional().allow(""),
@@ -67,13 +67,13 @@ const addCommentSchema = Joi.object({
     .messages({
       "any.required": "Comment content is required",
       "string.empty": "Comment cannot be empty",
-      "string.max":   "Comment cannot exceed 1000 characters",
+      "string.max": "Comment cannot exceed 1000 characters",
     }),
 });
 
 module.exports = {
-  createTaskValidation:  validate(createTaskSchema),
-  updateTaskValidation:  validate(updateTaskSchema),
+  createTaskValidation: validate(createTaskSchema),
+  updateTaskValidation: validate(updateTaskSchema),
   updateStatusValidation: validate(updateStatusSchema),
-  addCommentValidation:  validate(addCommentSchema),
+  addCommentValidation: validate(addCommentSchema),
 };

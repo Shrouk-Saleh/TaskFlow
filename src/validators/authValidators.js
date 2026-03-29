@@ -3,8 +3,8 @@ const Joi = require("joi");
 // ── Helper: run Joi validation and call next on error ────────────
 const validate = (schema) => (req, res, next) => {
   const { error } = schema.validate(req.body, {
-    abortEarly: false,  
-    allowUnknown: false
+ abortEarly: false,   // collect ALL errors not just the first
+   stripUnknown: true, // remove extra fields
   });
 
 if (error) {
